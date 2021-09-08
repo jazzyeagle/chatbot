@@ -1,0 +1,11 @@
+.environment/
+.Tooby/
+*/__pycache__/
+*.pyc
+*.db
+*.db.backup
+*.log
+*.txt
+twitchio/
+TwitchIO/
+
