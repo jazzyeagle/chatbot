@@ -19,14 +19,16 @@ class Message:
                  text         = '',
                  to_user      = None
                 ):
-        self.message_type = message_type
-        self.platform = platform
-        self.author = author
-        self.channel = channel
-        self.timestamp = timestamp
-        self.command = command
-        self.text = text
-        self.to_user = to_user
+        self.message_type     = message_type
+        self.platform         = platform
+        self.author           = author
+        self.channel          = channel
+        self.timestamp        = timestamp
+        self.command          = command
+        self.text             = text
+        self.to_user          = to_user
+        self.response         = ''
+        self.send_to_server   = False
 
 
 class Inbox:

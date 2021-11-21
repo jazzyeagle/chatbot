@@ -2,6 +2,7 @@ import asyncio
 import socket
 
 import plugin
+from plugin import Message, MessageType
 
 twitch_irc_url  = 'irc.chat.twitch.tv'
 twitch_irc_port = '6697'
@@ -45,13 +46,13 @@ class TwitchIRCBot:
         username    = self.settings['botnick']
         oauth_token = self.settings['oauth-token']
         channels    = self.settings['channels'].split(',')
-        self.send_server(f'PASS {oauth_token}')
-        self.send_server(f'NICK {username}')
+        await self.send_server(f'PASS {oauth_token}')
+        await self.send_server(f'NICK {username}')
         print('Connected.')
         for channel in channels:
             print(f'  Joining #{channel}')
-            self.send_server(f'JOIN #{channel}')
-            self.send_to_channel(channel, 'The eagle has landed.')
+            await self.send_server(f'JOIN #{channel}')
+            await self.send_to_channel(channel, 'The eagle has landed.')
         
         
     async def stop(self):
@@ -86,14 +87,10 @@ class TwitchIRCBot:
     async def process(self):
         while self.keep_looping:
             try:
-                # Get bytestring info
                 unprocessed_message = await self.inbox.get()
-                # decode from bytestring to string
-                unprocessed_message = unprocessed_message.decode()
-                # remove '\r\n'
-                unprocessed_message = unprocessed_message[:len(unprocessed_message)-2]
                 if unprocessed_message:
-                    await self.outbox.put(unprocessed_message)   
+                    processed_message = await self.create_message(unprocessed_message)
+                    await self.outbox.put(processed_message)   
                 self.inbox.task_done()
             except asyncio.exceptions.CancelledError:
                 pass
@@ -104,28 +101,82 @@ class TwitchIRCBot:
     async def write(self):
         while self.keep_looping:
             message = await self.outbox.get()
-            if message:
-                print(f'> {str(message)}')
-            if message == 'PING :tmi.twitch.tv':
-                print('PONG :tmi.twitch.tv')
-                self.send_server('PONG :tmi.twitch.tv')
-        self.outbox.task_done()
-        
+            if 'PASS' in message.text:
+                print('< PASS ********')
+            else:
+                print(f'> {message.text}')
+            if message is not None:
+                if message == 'PING :tmi.twitch.tv':
+                    print('PONG :tmi.twitch.tv')
+                    await self.send_server('PONG :tmi.twitch.tv')
+                else:
+                    if message.response:
+                        print(f'< {str(message.response)}')
+                    if message.send_to_server:
+                        await self.send_server(message.response)
+            self.outbox.task_done()
+            
 
-    def send_server(self, message):
-        if 'PASS' in message:
-            print('< PASS ********')
-        else:
-            print(f'< {message}')
+    async def send_server(self, message):
         self.output.write(f'{message}\r\n'.encode())
         
     
-    def send_to_user(self, user, message):
-        self.send_server(f'PRIVMSG {user} {message}')
+    async def send_to_user(self, user, message):
+        await self.send_server(f'PRIVMSG {user} {message}')
         
     
-    def send_to_channel(self, channel, message):
-        self.send_server(f'PRIVMSG #{channel} {message}')
+    async def send_to_channel(self, channel, message):
+        await self.send_server(f'PRIVMSG #{channel} {message}')
+        
 
-    def create_message(self, message):
-        pass
+    async def create_message(self, unprocessed_message):
+        # decode from bytestring to string
+        unprocessed_message = unprocessed_message.decode()
+        # remove '\r\n'
+        unprocessed_message = unprocessed_message[:len(unprocessed_message)-2]
+        
+
+        # For now, only process messages sent to a channel or via whisper by looking for PRIVMSG
+        if 'PRIVMSG' in unprocessed_message:
+            processed_message = await self.process_PRIVMSG(unprocessed_message)
+        else:
+            processed_message = Message(
+                                         message_type = MessageType.Server,
+                                         text         = unprocessed_message,
+                                       )
+        return processed_message
+    
+        
+    async def process_PRIVMSG(self, unprocessed_message):
+        if '#' in unprocessed_message:
+            message_type  = MessageType.Channel
+            channel_start = unprocessed_message.find('#')
+            channel_end   = unprocessed_message.find(' ', channel_start)
+            channel       = unprocessed_message[channel_start:channel_end].strip()
+        else:
+            message_type = MessageType.Private
+            channel      = ''
+        author_start     = 1
+        author_end       = unprocessed_message.find('!', author_start)
+        author           = unprocessed_message[author_start:author_end].strip()
+        
+        text_start       = unprocessed_message.find(':', channel_end) + 1
+        text             = unprocessed_message[text_start:]
+        
+        if text_start == '!':
+            command_end  = text.find(' ')
+            command      = text[:command_end].strip()
+            script       = bot.db.get('commands', command)
+        else:
+            command      = ''
+            script       = None
+        message = Message(
+                                  message_type = message_type,
+                                  platform     = 'Twitch',
+                                  author       = author,
+                                  channel      = channel,
+                                  command      = command,
+                                  text         = text
+                                )
+        processed_message = await self.bot.parser.process(self.bot, message, script)
+        return processed_message

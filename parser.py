@@ -27,11 +27,14 @@ class Parser:
             'exists':  self.existsCommand
             }
 
-    async def process(self, bot, message, script):
+    async def process(self, bot, message, script=None):
         self.bot = bot
         self.message = message
+        
+        if script is None:
+            return self.message
+        
         processed_script = script
-
         subcommand = self.findSubcommand(processed_script)
         while (not subcommand.isError()) and (subcommand.getResult() is not None):
             # Ssend to the script to the appropriate command function to resolve
@@ -46,10 +49,14 @@ class Parser:
                 processed_script = processed_script[:start] + result.getResult() + processed_script[end+1:]
             subcommand = self.findSubcommand(processed_script)
 
+        print(f'subcommand: {str(subcommand)}')
         if subcommand.isOk():
-            return processed_script
+            print(f'parser.process successful: {processed_script}')
+            message.response = processed_script
+            message.send_to_server = True
         else:
-            return f'Error: {subcommand.getError()}'
+            message.response = f'Error: {subcommand.getError()}'
+        return message
 
 
     # Finds first subcommand in script and returns start and end.  This does not process the subcommand at all.
