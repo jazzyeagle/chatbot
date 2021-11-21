@@ -65,20 +65,16 @@ class Database:
 
     # Returns the connection settings for a particular plugin
     def getConnectionSettings(self, plugin):
-        print(plugin)
         settings = {}
         settings['channels'] = []
         with Session(self.engine) as session:
             results = session.query(ConnectionSettings.field,
                                      ConnectionSettings.value).all()
-            #.filter(ConnectionSettings.platform == plugin)
-            print(results)
             for result in results:
                 if result.field == 'channel':
                     settings['channels'].append(result.value)
                 else:
                     settings[result.field] = result.value
-            print(settings)
             return settings
         
 

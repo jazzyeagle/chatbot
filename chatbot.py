@@ -4,6 +4,7 @@
 tooby.py: This is the main engine of the bot, which communicates with the various plugins.
 """
 
+import asyncio
 import importlib
 import logging
 import pkgutil
@@ -38,7 +39,7 @@ class ChatBot:
     def run(self):
         print('Starting application...')
         for plugin in self.plugins.values():
-            plugin.run()
+            asyncio.run(plugin.run())
         print('Chatbot shutting down.')
 
 
