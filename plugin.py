@@ -10,25 +10,27 @@ class MessageType(Enum):
 
 class Message:
     def __init__(self,
-                 message_type = MessageType.Channel, 
-                 platform     = '',
-                 author       = '',
-                 channel      = '',
-                 timestamp    = datetime.now(),
-                 command      = '',
-                 text         = '',
-                 to_user      = None
+                 message_type   = MessageType.Channel,
+                 platform       = '',
+                 author         = '',
+                 channel        = '',
+                 timestamp      = datetime.now(),
+                 command        = '',
+                 text           = '',
+                 to_user        = None,
+                 response       = '',
+                 send_to_server = False
                 ):
-        self.message_type     = message_type
-        self.platform         = platform
-        self.author           = author
-        self.channel          = channel
-        self.timestamp        = timestamp
-        self.command          = command
-        self.text             = text
-        self.to_user          = to_user
-        self.response         = ''
-        self.send_to_server   = False
+        self.message_type       = message_type
+        self.platform           = platform
+        self.author             = author
+        self.channel            = channel
+        self.timestamp          = timestamp
+        self.command            = command
+        self.text               = text
+        self.to_user            = to_user
+        self.response           = response
+        self.send_to_server     = send_to_server
 
 
 class Inbox:

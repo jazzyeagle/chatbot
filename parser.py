@@ -31,9 +31,11 @@ class Parser:
         self.bot = bot
         self.message = message
         
+        print('parser.process')
         if script is None:
             return self.message
         
+        print(f'Script = {script}')
         processed_script = script
         subcommand = self.findSubcommand(processed_script)
         while (not subcommand.isError()) and (subcommand.getResult() is not None):

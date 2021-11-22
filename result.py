@@ -37,3 +37,6 @@ class Result:
         if self.isOk():
             return None
         return self.result
+
+    def getResultOrError(self):
+        return self.result

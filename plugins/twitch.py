@@ -52,7 +52,11 @@ class TwitchIRCBot:
         for channel in channels:
             print(f'  Joining #{channel}')
             await self.send_server(f'JOIN #{channel}')
-            await self.send_to_channel(channel, 'The eagle has landed.')
+            await self.send_to_channel(Message( channel        = channel,
+                                                response       = 'The eagle has landed.',
+                                                send_to_server = True
+                                              )
+                                      )
         
         
     async def stop(self):
@@ -113,20 +117,33 @@ class TwitchIRCBot:
                     if message.response:
                         print(f'< {str(message.response)}')
                     if message.send_to_server:
-                        await self.send_server(message.response)
+                        if message.message_type == MessageType.Server:
+                            print('Sending directly to server')
+                            await self.send_server(message.response)
+                        elif message.message_type == MessageType.Channel:
+                            print(f'Sending to channel #{message.channel}')
+                            await self.send_to_channel(message)
+                        elif message.message_type == MessageType.Private:
+                            print(f'Sending to user {message.author}')
+                            await self.send_to_user(message)
+                        else:
+                            print(f'Invalid MessageType: {message.message_type}')
             self.outbox.task_done()
             
 
     async def send_server(self, message):
+        print(f'send_server: {message}')
         self.output.write(f'{message}\r\n'.encode())
         
     
-    async def send_to_user(self, user, message):
-        await self.send_server(f'PRIVMSG {user} {message}')
+    async def send_to_user(self, message):
+        print('send_to_user')
+        await self.send_server(f'PRIVMSG {message.author} :{message.response}')
         
     
-    async def send_to_channel(self, channel, message):
-        await self.send_server(f'PRIVMSG #{channel} {message}')
+    async def send_to_channel(self, message):
+        print('send_to_channel')
+        await self.send_server(f'PRIVMSG #{message.channel} :{message.response}')
         
 
     async def create_message(self, unprocessed_message):
@@ -150,7 +167,7 @@ class TwitchIRCBot:
     async def process_PRIVMSG(self, unprocessed_message):
         if '#' in unprocessed_message:
             message_type  = MessageType.Channel
-            channel_start = unprocessed_message.find('#')
+            channel_start = unprocessed_message.find('#') + 1
             channel_end   = unprocessed_message.find(' ', channel_start)
             channel       = unprocessed_message[channel_start:channel_end].strip()
         else:
@@ -163,10 +180,16 @@ class TwitchIRCBot:
         text_start       = unprocessed_message.find(':', channel_end) + 1
         text             = unprocessed_message[text_start:]
         
-        if text_start == '!':
+        print(f'text: {text}')
+        if text[0] == '!':
             command_end  = text.find(' ')
-            command      = text[:command_end].strip()
-            script       = bot.db.get('commands', command)
+            if command_end == -1:
+                command = text[1:].strip()
+            else:
+                command      = text[1:command_end].strip()
+            print(f'command: {command}')
+            script       = self.bot.db.getScript(command).getResultOrError()
+            print(script)
         else:
             command      = ''
             script       = None
@@ -176,7 +199,7 @@ class TwitchIRCBot:
                                   author       = author,
                                   channel      = channel,
                                   command      = command,
-                                  text         = text
+                                  text         = text,
                                 )
         processed_message = await self.bot.parser.process(self.bot, message, script)
         return processed_message

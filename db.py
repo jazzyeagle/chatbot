@@ -84,6 +84,16 @@ class Database:
             return session.execute(select(Commands.name, Commands.script))
 
 
+    def getScript(self, varName):
+        print('getScript')
+        with Session(self.engine) as session:
+            results = session.execute(select(Commands.script).where(Commands.name == varName)).first()
+            print(f'# Results: {len(results)}')
+            if len(results) == 0:
+                return Result(ResultType.Error, f'Command {varName} does not exist')
+            return Result(ResultType.Ok, results[0])
+
+
     def getType(self, t):
         if t in dbTableTypes.keys():
             return Result(ResultType.Ok, dbTableTypes[t])
@@ -103,14 +113,12 @@ class Database:
         with Session(self.engine) as session:
             results = session.execute(select(Variables.value).where(Variables.name == varName)).all()
             if len(results) == 0:
-                # Safety net, but this should never happen, as we check to see if it exists before
-                #    executing this function.
-                print('Safety net hit in error!!')
                 return Result(ResultType.Error, f'{varType.__name__} error:  {varName} not found in db.')
             return Result(ResultType.Ok, results)
 
 
     def get(self, varType, varName):
+        print('db.get')
         results = self.getAllResults(varType, varName)
         if results.isError():
             return results
