@@ -185,8 +185,14 @@ class TwitchIRCBot:
             command_end  = text.find(' ')
             if command_end == -1:
                 command = text[1:].strip()
+                to_user = None
             else:
                 command      = text[1:command_end].strip()
+                user_end     = text.find(' ', command_end + 1)
+                if user_end == -1:
+                    to_user  = text[command_end+1:].strip()
+                else:
+                    to_user  = text[command_end+1:user_end].strip()
             print(f'command: {command}')
             script       = self.bot.db.getScript(command).getResultOrError()
             print(script)

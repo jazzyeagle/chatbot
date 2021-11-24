@@ -31,11 +31,9 @@ class Parser:
         self.bot = bot
         self.message = message
         
-        print('parser.process')
         if script is None:
             return self.message
         
-        print(f'Script = {script}')
         processed_script = script
         subcommand = self.findSubcommand(processed_script)
         while (not subcommand.isError()) and (subcommand.getResult() is not None):
@@ -51,9 +49,7 @@ class Parser:
                 processed_script = processed_script[:start] + result.getResult() + processed_script[end+1:]
             subcommand = self.findSubcommand(processed_script)
 
-        print(f'subcommand: {str(subcommand)}')
         if subcommand.isOk():
-            print(f'parser.process successful: {processed_script}')
             message.response = processed_script
             message.send_to_server = True
         else:
@@ -261,9 +257,6 @@ class Parser:
         parts = script.split()
 
         # For the variable name, we need to process any { }
-        #varName = await self.parseCommand(script, ' '.join(parts[2]))
-        #varName = varName.lower()
-
         if varType is None:
             return Result(ResultType.Error, f'Variable Type {varType} is not recognized.') 
         
@@ -307,24 +300,19 @@ class Parser:
 
 
 
-    #def getCommand(self, commands, varName):
-    #    for row in commands:
-    #        if row.name == varName:
-    #            return Result(ResultType.Ok, row.script)
-    #    return Result(ResultType.Error, f'Command {varName} not found.')
-
-
     # script sent only to match the same parameters as the others in the dictionary (see __init__)
     #   It is not actually used.
     async def userCommand(self, script):
-        if self.message.to_user is not None:
-            user = self.message.to_user
-            if user[0] == '@':
-                response = user[1:]
-            else:
-                response = user
+        words = self.message.text.split()
+        if len(words) > 1:
+            user = words[1]
         else:
-            response = self.message.author
+            user = self.message.author
+                
+        if user[0] == '@':
+            response = user[1:]
+        else:
+            response = user
         return Result(ResultType.Ok, response)
 
 
