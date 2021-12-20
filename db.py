@@ -57,7 +57,7 @@ dbTableTypes = {
 
 class Database:
     def __init__(self, path_to_db='chatbot.db'):
-        logging.debug("sqlite+pysqlite:///" + path_to_db)
+        logging.debug("db.init sqlite+pysqlite:///" + path_to_db)
         self.engine = create_engine("sqlite+pysqlite:///" + path_to_db, future=True, poolclass=QueuePool)
 
         BaseClass.metadata.create_all(self.engine)
@@ -65,6 +65,7 @@ class Database:
 
     # Returns the connection settings for a particular plugin
     def getConnectionSettings(self, plugin):
+        logging.debug('db.getConnectionSettings')
         settings = {}
         settings['channels'] = []
         with Session(self.engine) as session:
@@ -80,27 +81,30 @@ class Database:
 
     # Returns the list of commands and the corresponding scripts
     def getCommands(self):
+        logging.debug('db.getCommands')
         with Session(self.engine) as session:
             return session.execute(select(Commands.name, Commands.script))
 
 
     def getScript(self, varName):
-        print('getScript')
+        logging.debug('db.getScript')
         with Session(self.engine) as session:
             results = session.execute(select(Commands.script).where(Commands.name == varName)).first()
-            print(f'# Results: {len(results)}')
+            logging.debug(f'# Results: {len(results)}')
             if len(results) == 0:
                 return Result(ResultType.Error, f'Command {varName} does not exist')
             return Result(ResultType.Ok, results[0])
 
 
     def getType(self, t):
+        logging.debug('db.getType')
         if t in dbTableTypes.keys():
             return Result(ResultType.Ok, dbTableTypes[t])
         return Result(ResultType.Error, f'Type {t} not a valid dbTableType')
 
 
     def exists(self, varType, varName):
+        logging.debug('db.exists')
         with Session(self.engine) as session:
             q = session.query(varType.id).filter(varType.name == varName.lower())
             #session.query(q.exists())
@@ -110,6 +114,7 @@ class Database:
 
     # This function is used within get, but it is also called directly via tests
     def getAllResults(self, varType, varName):
+        logging.debug('db.getAllResults')
         with Session(self.engine) as session:
             results = session.execute(select(Variables.value).where(Variables.name == varName)).all()
             if len(results) == 0:
@@ -118,7 +123,7 @@ class Database:
 
 
     def get(self, varType, varName):
-        print('db.get')
+        logging.debug('db.get')
         results = self.getAllResults(varType, varName)
         if results.isError():
             return results
@@ -133,10 +138,12 @@ class Database:
 
 
     def set(self, varType, varName, value):
+        logging.debug('db.set - pass')
         pass
 
 
     def delete(self, varType, varName):
+        logging.debug('db.delete - pass')
         pass
 
 

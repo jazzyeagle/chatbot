@@ -19,6 +19,7 @@ Main Bot Class
 class ChatBot:
     def __init__(self):
         print('Initializing core modules...')
+        logging.basicConfig(filename='twitch.log', encoding='utf-8', level=logging.DEBUG)
         self.db = Database()
         self.parser = Parser(self.db)
 
